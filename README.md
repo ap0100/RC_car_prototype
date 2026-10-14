@@ -84,7 +84,6 @@ Every `-` wire in the car goes to one common junction.
 | "Flash chip connection" error | Upload speed → 115200 |
 | Won't boot on battery, works on USB | Check common ground, verify 3.30V under load, press RST once and wait 5s |
 | Motors twitch and everything dies | Battery sag or DW01 tripping |
-| Bluetooth connects, motor silent | Missing common ground between ESP32 and driver |
 
 ## 🪦 Casualties
 
@@ -98,4 +97,4 @@ Every `-` wire in the car goes to one common junction.
 Working. Tight turning, stable Bluetooth, headlights toggle. 
 Future upgrades: better design
 
-*Built with more troubleshooting than planned.*
+*A lot more parts died than planned. Soldering was nearly impossible at times.*
