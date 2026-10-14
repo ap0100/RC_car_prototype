@@ -2,6 +2,13 @@
 
 An ESP32 RC car controlled from a browser via Web Bluetooth. Just open the HTML, connect via Bluetooth and drive.
 
+Here's the current look of the car:
+<div>
+  <img src="design/rc_car_side_view.png" width="225"/>
+  <img src="design/rc_car_top_view.png" width="200"/>
+</div>
+
+
 ## 🧰 Components
 **Brains**
 - ESP32 WEMOS LOLIN32 Lite (CH340C USB chip)
