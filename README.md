@@ -28,7 +28,7 @@ Web Bluetooth is what lets the browser talk directly to the ESP32. Here's what y
 
 ## 🧰 Components
 **Brains**
-- `ESP32 WEMOS LOLIN32 Lite` (CH340C USB chip)
+- `ESP32 WEMOS LOLIN32 Lite` (CH340C chip)
 - `TC1508A Dual H-Bridge Motor Driver Module` (sold as ,,`MINI L298N`", but with the TC1508A chip, not an actual L298N)
 
 **Muscles**
@@ -37,11 +37,11 @@ Web Bluetooth is what lets the browser talk directly to the ESP32. Here's what y
 - 2x `220Ω Resistor` (for the LEDs)
   
 **Power/Charging**
-- `3.7V 1S LiPo Battery` (Original: 802060-1000mAh, died. Replaced with: --)
-- `TP4056 Lithium Charger Module` (5V 1A, with DW01 dual protection, Mini USB & Type-C)
-- `MT3608 DC-DC Boost Converter` (Step-Up, 2A)
-- `LM2596 DC-DC Buck Converter` (Step-Down)
-- 2x `2-Pin Rocker Switche (SPST)` (one for the charger circuit, one for the main motor+led circuit)
+- `3.7V 1S Lithium-Polymer Battery` (Original: 802060-1000mAh, died. Replaced with: --)
+- `TP4056 Lithium Charger Module` (with DW01HA + 8205A protection, USB Type-C)
+- `MT3608 DC-DC Boost Converter` (Step-Up, set to output 5V)
+- `LM2596 DC-DC Buck Converter` (Step-Down, set to output 3.3V)
+- 2x `2-Pin Rocker Switch (SPST)` (one for the charger circuit, one for the main motor+led circuit)
 
 ---
 **Motors, charger and rest of logic get separate power, but there's one shared ground.**
@@ -88,7 +88,7 @@ Every `-` wire in the car goes to one common junction.
 
 - **Don't connect USB and battery at the same time.** Pick one.
 - **Set LM2596 to exactly 3.30V** before wiring it to the ESP32. Not 3.5V or anything "close enough."
-- **Battery → MT3608 (7V) → LM2596 (3.3V)** because the buck converter can't lower a voltage less than 5V, so we need to first increase the 3.7V to 5V, then reduce it to 3.3V.
+- **Battery → MT3608 (5V) → LM2596 (3.3V)** because the buck converter can't lower a voltage less than 5V, so we need to first increase the 3.7V to 5V, then reduce it to 3.3V.
 - **Don't charge while driving.** TP4056 has no load sharing.
 - **Web Bluetooth ≠ OS Bluetooth pairing.** Do NOT pair through phone/laptop settings, just use the button ,,CONNECT TO CAR" on the web page and pair through via Web Bluetooth. If you already paired via OS, forget it first.
 - **Motors without capacitors can work fine.** (add them only if Bluetooth drops out under load)
