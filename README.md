@@ -28,20 +28,20 @@ Web Bluetooth is what lets the browser talk directly to the ESP32. Here's what y
 
 ## 🧰 Components
 **Brains**
-- ESP32 WEMOS LOLIN32 Lite (CH340C USB chip)
-- TC1508A Dual H-Bridge Motor Driver Module (sold as "Mini L298N", but with the TC1508A chip, not an actual L298N)
+- `ESP32 WEMOS LOLIN32 Lite` (CH340C USB chip)
+- `TC1508A Dual H-Bridge Motor Driver Module` (sold as ,,`MINI L298N`", but with the TC1508A chip, not an actual L298N)
 
-**Muscle**
-- 2x TT Gearbox DC Motors (3V–6V, 1:48 gear ratio)
-- 2x 5mm Yellow LEDs
-- 2x 220Ω Resistors (for the LEDs)
+**Muscles**
+- 2x `TT Gearbox DC Motor` (3V–6V, 1:48 gear ratio)
+- 2x `5mm Yellow LED`
+- 2x `220Ω Resistor` (for the LEDs)
   
 **Power/Charging**
-- 3.7V 1S LiPo Battery (Original: 802060-1000mAh, died. Upgraded to: --)
-- TP4056 Lithium Charger Module (5V 1A, with DW01 dual protection, Mini USB & Type-C)
-- MT3608 DC-DC Boost Converter (Step-Up, 2A)
-- LM2596 DC-DC Buck Converter (Step-Down)
-- 2x 2-Pin Rocker Switches (SPST) (one for the charger circuit, one for the main car circuit)
+- `3.7V 1S LiPo Battery` (Original: 802060-1000mAh, died. Replaced with: --)
+- `TP4056 Lithium Charger Module` (5V 1A, with DW01 dual protection, Mini USB & Type-C)
+- `MT3608 DC-DC Boost Converter` (Step-Up, 2A)
+- `LM2596 DC-DC Buck Converter` (Step-Down)
+- 2x `2-Pin Rocker Switche (SPST)` (one for the charger circuit, one for the main motor+led circuit)
 
 ---
 **Motors, charger and rest of logic get separate power, but there's one shared ground.**
