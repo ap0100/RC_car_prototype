@@ -8,6 +8,23 @@ Here's the current look of the car:
   <img src="design/rc_car_top_view.png" width="200"/>
 </div>
 
+## 📡 Enabling Web Bluetooth
+
+Web Bluetooth is what lets the browser talk directly to the ESP32. Here's what you need:
+
+**✅ Works out of the box:**
+- Chrome or Edge on Android
+- Chrome or Edge on Windows / macOS / Linux
+
+**⚠️ Needs a flag enabled:**
+- Brave: `brave://flags` → enable "Web Bluetooth API"
+- Chrome: `chrome://flags` → enable "Web Bluetooth"
+
+**❌ Doesn't work:**
+- Safari on iOS → use **Bluefy** or **WebBLE** from the App Store
+- Firefox → no support at all
+
+---
 
 ## 🧰 Components
 **Brains**
@@ -50,7 +67,7 @@ Every `-` wire in the car goes to one common junction.
 4. Upload the `.ino` to the board
 
 **Controller:**
-1. Open `controller.html` in **Chrome or Edge** (not Safari, not Firefox)
+1. Open `controller.html` in **Chrome or Edge**
 2. Click CONNECT TO CAR
 3. Pick `ESP32_RC_Car` from the browser popup
 
@@ -73,8 +90,8 @@ Every `-` wire in the car goes to one common junction.
 - **Set LM2596 to exactly 3.30V** before wiring it to the ESP32. Not 3.5V or anything "close enough."
 - **Battery → MT3608 (7V) → LM2596 (3.3V)** because the buck converter can't lower a voltage less than 5V, so we need to first increase the 3.7V to 5V, then reduce it to 3.3V.
 - **Don't charge while driving.** TP4056 has no load sharing.
-- **Web Bluetooth ≠ OS Bluetooth pairing.** Do NOT pair through phone/laptop settings. Use the web page. If you already paired via OS, forget it first.
-- **Motors without capacitors can work fine.** Add them only if Bluetooth drops out under load.
+- **Web Bluetooth ≠ OS Bluetooth pairing.** Do NOT pair through phone/laptop settings, just use the button ,,CONNECT TO CAR" on the web page and pair through via Web Bluetooth. If you already paired via OS, forget it first.
+- **Motors without capacitors can work fine.** (add them only if Bluetooth drops out under load)
 
 
 ## 🛠️ Quick Troubleshooting
