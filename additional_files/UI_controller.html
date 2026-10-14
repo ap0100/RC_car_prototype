@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC Car - Bluetooth Controller</title>
+<style>
+  body { background: #0f0f0f; color: #eee; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; user-select: none; padding: 20px; }
+  .container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; width: 90%; max-width: 400px; }
+  .btn { padding: 25px 12px; background: linear-gradient(180deg, #333, #1a1a1a); border: 3px solid #555; border-radius: 16px; color: #bbb; font-size: 1.1em; font-weight: 900; text-align: center; cursor: pointer; transition: all 0.1s; }
+  .btn:active { transform: scale(0.95); background: #666; border-color: #ccc; color: #fff; }
+  .gas { padding: 60px 12px; font-size: 1.4em; }
+  .stop-btn { grid-column: span 2; background: linear-gradient(180deg, #5a1a1a, #2a0808); border-color: #922; color: #f88; }
+  .lights-btn { width: 100%; margin-top: 15px; background: linear-gradient(180deg, #4a3a10, #1a1408); border-color: #a80; color: #fd6; }
+  .lights-btn.on { background: linear-gradient(180deg, #ffd54a, #c99a00); color: #000; border-color: #ffe680; box-shadow: 0 0 20px #ffcc00; }
+  #status { margin-top: 20px; color: #4ecdc4; }
+</style>
+</head>
+<body>
+  <button id="connectBtn" class="btn" style="width:100%; margin-bottom:15px;">CONNECT TO CAR</button>
+  <div class="container">
+    <button class="btn" id="left">◀ LEFT</button>
+    <button class="btn gas" id="gas">GAS</button>
+    <button class="btn" id="right">RIGHT ▶</button>
+    <button class="btn" id="reverse">REVERSE</button>
+    <button class="btn stop-btn" id="stop">STOP</button>
+  </div>
+  <button id="lightsBtn" class="btn lights-btn">💡 LIGHTS: OFF</button>
+  <div id="status">Disconnected</div>
+
+<script>
+  let bleDevice, bleCharacteristic;
+  let lightsState = false;
+
+  document.getElementById('connectBtn').addEventListener('click', async () => {
+    try {
+      bleDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'ESP32_RC_Car' }],
+        optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
+      });
+      const server = await bleDevice.gatt.connect();
+      const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+      bleCharacteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+      document.getElementById('status').innerText = 'Connected!';
+    } catch (e) {
+      document.getElementById('status').innerText = 'Connection failed: ' + e;
+    }
+  });
+
+  async function sendCommand(cmd) {
+    if (!bleCharacteristic) { alert('Not connected!'); return; }
+    try {
+      const encoder = new TextEncoder();
+      await bleCharacteristic.writeValue(encoder.encode(cmd));
+    } catch (e) { console.error(e); }
+  }
+
+  document.getElementById('gas').addEventListener('click', () => sendCommand('F'));
+  document.getElementById('reverse').addEventListener('click', () => sendCommand('B'));
+  document.getElementById('left').addEventListener('click', () => sendCommand('L'));
+  document.getElementById('right').addEventListener('click', () => sendCommand('R'));
+  document.getElementById('stop').addEventListener('click', () => sendCommand('S'));
+
+  document.getElementById('lightsBtn').addEventListener('click', () => {
+    sendCommand('T');
+    lightsState = !lightsState;
+    const btn = document.getElementById('lightsBtn');
+    btn.classList.toggle('on', lightsState);
+    btn.innerText = lightsState ? '💡 LIGHTS: ON' : '💡 LIGHTS: OFF';
+  });
+</script>
+</body>
+</html>
