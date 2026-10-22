@@ -1,122 +1,289 @@
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
 
 // --- Motor Pins ---
-const int IN1 = 26; // Motor A
-const int IN2 = 33; // Motor A
-const int IN3 = 13; // Motor B
-const int IN4 = 4;  // Motor B
-
+const int IN1 = 26, IN2 = 33, IN3 = 13, IN4 = 4;
 // --- LED Pins ---
-const int L1 = 18;
-const int L2 = 23;
-bool lightsOn = false;
+const int L1 = 18, L2 = 23;
+bool lightsOn = true;
 
-// --- BLE UUIDs ---
-#define SERVICE_UUID           "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+// --- SPEED SETTINGS ---
+const int MAX_SPEED = 125;  // 0 to 255, lower this number to make the car slower!
+const int RAMP_STEP = 10;   // how much speed to add per step (lower = smoother acceleration)
+const int RAMP_DELAY = 15;  // milliseconds between steps (lower = faster acceleration)
 
-BLECharacteristic *pRxCharacteristic;
-bool deviceConnected = false;
+// --- WiFi AP ---
+const char* AP_SSID = "ESP32_RC_Car";
+const char* AP_PASS = "rcCar1234";
 
-// --- Motor Helper Functions ---
+WebServer server(80);
+
+// --- State Management ---
+String targetDirection = "S"; // 'F', 'B', 'LF', 'RF', 'LB', 'RB' or 'S'
+String currentDirection = "S";
+int currentSpeed = 0;
+unsigned long lastRampTime = 0;
+unsigned long lastMoveMs = 0;
+const unsigned long CMD_TIMEOUT = 800; // Watchdog: stop if connection drops
+
+// ------------------------------------------------------------------
+// Web UI
+// ------------------------------------------------------------------
+const char PAGE[] = R"rawliteral(
+<!DOCTYPE html><html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>RC Car</title>
+<style>
+  body{
+    margin:0;
+    background:#111;
+    color:#eee;
+    font-family:system-ui,sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    user-select:none;
+    -webkit-user-select:none
+  }
+  #status{
+    position:fixed;
+    top:14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:14px
+  }
+  #dot{
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#555;
+    transition:background .2s
+  }
+  .pad{
+    display:grid;
+    grid-template-columns:repeat(3,90px);
+    grid-template-rows:repeat(3,90px);
+    gap:10px
+  }
+  button{
+    font-size:28px;
+    background:#222;
+    color:#eee;
+    border:2px solid #444;
+    border-radius:16px;
+    touch-action:none;
+    -webkit-tap-highlight-color:transparent
+  }
+  button:active{
+    background:#0a7
+  }
+  #lights{
+    grid-column:1/4;
+    font-size:18px
+  }
+  .empty{visibility:hidden}
+  #hint{
+    position:fixed;
+    bottom:14px;
+    font-size:12px;
+    color:#777;
+    text-align:center;
+    padding:0 16px
+  }
+</style></head><body>
+<div id="status"><span id="dot"></span><span id="statustext">Connecting…</span></div>
+<div class="pad">
+  <button data-cmd="LF">▲◀</button><button data-cmd="F">▲</button><button data-cmd="RF">▶▲</button>
+  <button class="empty"></button><button data-cmd="S">■</button><button class="empty"></button>
+  <button data-cmd="LB">▼◀</button><button data-cmd="B">▼</button><button data-cmd="RB">▶▼</button>
+  <button id="lights">Lights: OFF</button>
+</div>
+<div id="hint">Hold a direction to drive, release to stop. Click middle button to stop as well.</div>
+<script>
+const dot=document.getElementById('dot'), st=document.getElementById('statustext');
+let held=null, repeatTimer=null, lightsOnFlag=true;
+
+function setStatus(ok){
+  dot.style.background = ok ? '#0f0' : '#f33';
+  st.textContent = ok ? 'Connected' : 'Disconnected — join "ESP32_RC_Car"';
+}
+async function send(c){
+  try{ await fetch('/cmd?c='+c, {cache:'no-store'}); return true; }
+  catch(e){ setStatus(false); return false; }
+}
+function press(cmd){
+  held=cmd; send(cmd);
+  clearInterval(repeatTimer);
+  repeatTimer=setInterval(()=>{ if(held) send(held); }, 120);
+}
+function release(){
+  if(!held) return;
+  clearInterval(repeatTimer); repeatTimer=null;
+  send('S'); held=null;
+}
+setInterval(async ()=>{
+  try{ const r=await fetch('/ping',{cache:'no-store'}); setStatus(r.ok); }
+  catch(e){ setStatus(false); }
+},1000);
+setStatus(false);
+
+document.querySelectorAll('button[data-cmd]').forEach(b=>{
+  const c=b.dataset.cmd;
+  if(c==='S') return;
+  b.addEventListener('pointerdown',e=>{e.preventDefault(); b.setPointerCapture(e.pointerId); press(c);});
+  b.addEventListener('pointerup',e=>{e.preventDefault(); release();});
+  b.addEventListener('pointercancel',release);
+  b.addEventListener('lostpointercapture',release);
+});
+document.querySelector('button[data-cmd="S"]').addEventListener('pointerdown',e=>{
+  e.preventDefault(); release(); send('S');
+});
+const lb=document.getElementById('lights');
+lb.addEventListener('pointerdown',async e=>{
+  e.preventDefault(); await send('T');
+  lightsOnFlag=!lightsOnFlag; lb.textContent='Lights: '+(lightsOnFlag?'OFF':'ON');
+});
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ release(); send('S'); }});
+window.addEventListener('blur',()=>{ release(); send('S'); });
+window.addEventListener('beforeunload',()=>{ navigator.sendBeacon('/cmd?c=S'); });
+</script></body></html>
+)rawliteral";
+
+//actually applies the PWM signal to the pins
+void applyMotorPWM(String dir, int speed) {
+  if(dir=="B"){ // Forward
+    analogWrite(IN1, speed); analogWrite(IN2, 0);
+    analogWrite(IN3, 0); analogWrite(IN4, speed);
+  }else if(dir== "F"){// Reverse
+      analogWrite(IN1, 0); analogWrite(IN2, speed);
+      analogWrite(IN3, speed); analogWrite(IN4, 0);
+  }else if(dir== "LF"){ // Left
+      analogWrite(IN1, 0); analogWrite(IN2, speed);
+      analogWrite(IN3, 0);     analogWrite(IN4, 0);
+  }else if(dir== "RF"){// Right
+      analogWrite(IN1, 0);     analogWrite(IN2, 0);
+      analogWrite(IN3, speed); analogWrite(IN4, 0);
+  }else if(dir== "RB"){
+      analogWrite(IN1, speed); analogWrite(IN2, 0);
+      analogWrite(IN3, 0);     analogWrite(IN4, 0);
+  }else if(dir=="LB"){
+      analogWrite(IN1, 0); analogWrite(IN2, 0);
+      analogWrite(IN3, 0);     analogWrite(IN4, speed);
+  }else{
+      analogWrite(IN1, 0); analogWrite(IN2, 0);
+      analogWrite(IN3, 0); analogWrite(IN4, 0);
+  }
+}
+
 void stopMotors() {
-  digitalWrite(IN1, LOW); digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW); digitalWrite(IN4, LOW);
-}
-void goForward() {
-  digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
-}
-void goReverse() {
-  digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH);
-  digitalWrite(IN3, LOW); digitalWrite(IN4, HIGH);
-}
-void turnLeft() {
-  digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);  digitalWrite(IN4, LOW);
-}
-void turnRight() {
-  digitalWrite(IN1, LOW);  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW);
+  targetDirection = "S";
+  // Note: we don't set speed to 0 instantly here. 
+  // The updateMotors() loop will smoothly ramp it down.
 }
 
-// --- LED Helper ---
-void toggleLights() {
-  lightsOn = !lightsOn;
-  digitalWrite(L1, lightsOn ? HIGH : LOW);
-  digitalWrite(L2, lightsOn ? HIGH : LOW);
-  Serial.print("Lights: ");
-  Serial.println(lightsOn ? "ON" : "OFF");
+void toggleLights(){
+  lightsOn = !lightsOn; 
+  digitalWrite(L1, lightsOn?HIGH:LOW); 
+  digitalWrite(L2, lightsOn?HIGH:LOW); 
 }
 
-// --- BLE Callbacks ---
-class MyServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) {
-      deviceConnected = true;
-      Serial.println("Client connected");
-    };
-    void onDisconnect(BLEServer* pServer) {
-      deviceConnected = false;
-      Serial.println("Client disconnected");
-      stopMotors(); // safety: stop motors if connection drops
-      pServer->startAdvertising();
-    }
-};
-
-class MyCallbacks: public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic *pCharacteristic) {
-      String value = pCharacteristic->getValue();
-      if (value.length() > 0) {
-        char cmd = value[0];
-        Serial.print("Received: "); Serial.println(cmd);
-
-        switch(cmd) {
-          case 'F': goForward(); break;
-          case 'B': goReverse(); break;
-          case 'L': turnLeft(); break;
-          case 'R': turnRight(); break;
-          case 'S': stopMotors(); break;
-          case 'T': toggleLights(); break;
-          default: break;
-        }
+//smooth acceleration and deceleration
+void updateMotors() {
+  if (millis() - lastRampTime > RAMP_DELAY) {
+    lastRampTime = millis();
+    //changing direction -> must brake first
+    if (targetDirection != currentDirection) {
+      if (currentSpeed > 0) {
+        currentSpeed -= RAMP_STEP; //ramp down
+        if (currentSpeed < 0) currentSpeed = 0;
+      } else {
+        currentDirection = targetDirection; //safe to change direction
+      }
+    } 
+    //going the same direction -> adjust speed to target
+    else {
+      int targetSpeed = (targetDirection == "S") ? 0 : MAX_SPEED;
+      if (currentSpeed < targetSpeed) {
+        currentSpeed += RAMP_STEP; //ramp up
+        if (currentSpeed > targetSpeed) currentSpeed = targetSpeed;
+      } else if (currentSpeed > targetSpeed) {
+        currentSpeed -= RAMP_STEP; //ramp down
+        if (currentSpeed < targetSpeed) currentSpeed = targetSpeed;
       }
     }
-};
-
-void setup() {
-  Serial.begin(115200);
-
-  pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
-  pinMode(L1, OUTPUT);  pinMode(L2, OUTPUT);
-  stopMotors();
-  digitalWrite(L1, LOW);
-  digitalWrite(L2, LOW);
-
-  BLEDevice::init("ESP32_RC_Car");
-  BLEServer *pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-  pRxCharacteristic = pService->createCharacteristic(
-                        CHARACTERISTIC_UUID_RX,
-                        BLECharacteristic::PROPERTY_WRITE
-                      );
-  pRxCharacteristic->setCallbacks(new MyCallbacks());
-
-  pService->start();
-
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(true);
-  BLEDevice::startAdvertising();
-
-  Serial.println("BLE RC Car ready. Waiting for connections...");
+    applyMotorPWM(currentDirection, currentSpeed);
+  }
 }
 
-void loop() {
-  delay(100);
+void handleRoot(){ 
+  server.send(200, "text/html", PAGE); 
+}
+
+void handleCmd(){
+  if(!server.hasArg("c")){ server.send(400,"text/plain","missing c"); return; }
+  //read the whole String instead of just the first char
+  String cmd = server.arg("c");
+  
+  if (cmd == "F" || cmd == "B" || cmd == "LF" || cmd == "RF" || cmd == "LB" || cmd == "RB") {
+    targetDirection = cmd; 
+    lastMoveMs = millis(); 
+  } else if (cmd == "S") {
+    stopMotors(); 
+  } else if (cmd == "T") {
+    toggleLights(); 
+  } else {
+    server.send(400,"text/plain","bad cmd"); 
+    return;
+  }
+  server.send(200,"text/plain","ok");
+}
+
+void handlePing(){ server.send(200,"text/plain","pong"); }
+
+void setup(){
+  Serial.begin(115200);
+
+  //setup PWM pins (ESP32 handles analogWrite natively)
+  pinMode(IN1,OUTPUT); pinMode(IN2,OUTPUT);
+  pinMode(IN3,OUTPUT); pinMode(IN4,OUTPUT);
+  pinMode(L1,OUTPUT);  pinMode(L2,OUTPUT);
+  
+  applyMotorPWM("S", 0);
+  digitalWrite(L1,HIGH); digitalWrite(L2,HIGH);
+
+  WiFi.mode(WIFI_AP);
+  WiFi.setSleep(false);
+  bool ok = WiFi.softAP(AP_SSID, AP_PASS);
+  Serial.printf("AP %s  IP: %s\n", ok ? "up" : "FAILED", WiFi.softAPIP().toString().c_str());
+
+  if(MDNS.begin("esp32car")){
+    MDNS.addService("http","tcp",80);
+    Serial.println("mDNS: http://esp32car.local");
+  }
+
+  server.on("/", handleRoot);
+  server.on("/cmd", handleCmd);
+  server.on("/ping", handlePing);
+  server.onNotFound([]{ server.send(404,"text/plain","not found"); });
+  server.begin();
+
+  Serial.println("Open http://192.168.4.1  (or http://esp32car.local)");
+}
+
+void loop(){
+  server.handleClient();
+  updateMotors(); //smooth acceleration
+
+  //if we're moving but no command arrived, stop
+  if (targetDirection != "S" && millis() - lastMoveMs > CMD_TIMEOUT){
+    stopMotors(); 
+    Serial.println("watchdog: stopped");
+  }
+  delay(1);
 }
