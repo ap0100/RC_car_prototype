@@ -113,7 +113,7 @@ Future upgrades: better design, a real 18650 LiPo battery
 *A lot more parts died than planned. Soldering was nearly impossible at times. Web Bluetooth was a nightmare and got scrapped entirely for a Wi-Fi AP. The battery turned out to be the biggest nightmare of them all.*
 
 ## 🎖️ Credits & Acknowledgments
-⭐ **Build, Code, & Suffering:** All done by me. From designing the circuit and wiring to coding the local HTTP web server on the ESP32, implementing the PWM motor logic, and spending 3 days debugging ghost voltages with DeepSeek :). </br>
+⭐ **Build, Code, & Suffering:** All done by me. From designing the circuit and wiring to coding the local HTTP web server on the ESP32, implementing the PWM motor logic, and spending hours debugging ghost voltages with DeepSeek :). </br>
 ⭐ **The "Jerry" Inspiration:** Huge shoutout to my classmates(https://github.com/lukspuks & https://github.com/sarakochovska) who helped brainstorm and came up with the idea for the name **Jerry**, as well as the upcoming mouse-like chassis design.
 
 *Jerry will soon be left in the school projects cabin for future generations of makers to hopefully not destroy.*
