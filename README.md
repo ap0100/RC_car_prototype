@@ -114,7 +114,7 @@ Future upgrades: better design, a real 18650 LiPo battery
 
 ## 🎖️ Credits & Acknowledgments
 ⭐ **Build, Code, & Suffering:** All done by me. From designing the circuit and wiring to coding the local HTTP web server on the ESP32, implementing the PWM motor logic, and spending hours debugging ghost voltages with DeepSeek :). </br>
-⭐ **The "Jerry" Inspiration:** Huge shoutout to my classmates(https://github.com/lukspuks & https://github.com/sarakochovska) who helped brainstorm and came up with the idea for the name **Jerry**, as well as the upcoming mouse-like chassis design.
+⭐ **The "Jerry" Inspiration:** Huge shoutout to my classmates ([lukspuks](https://github.com/lukspuks) & [sarakochovska](https://github.com/sarakochovska)) who helped brainstorm and came up with the idea for the name **Jerry**, as well as the upcoming mouse-like chassis design.
 
 *Jerry will soon be left in the school projects cabin for future generations of makers to hopefully not destroy.*
 
