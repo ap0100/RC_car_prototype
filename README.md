@@ -1,10 +1,11 @@
-# ESP32 Wi-Fi RC Car 🚗
-An ESP32 RC car controlled from a browser over Wi-Fi. Just connect to the car's Wi-Fi network, open the web page, and drive. No apps, no Bluetooth pairing, no Web Bluetooth APIs needed.
+# ESP32 Wi-Fi RC Car 
+An ESP32 RC car controlled from a browser over Wi-Fi, named ,,Jerry". Just connect to the car's Wi-Fi network, open the web page, and drive. No apps, no Bluetooth pairing, no Web Bluetooth APIs needed.
 
 Here's the current look of the car:
 <div>
-  <img src="design/rc_car_side_view.png" width="225"/>
-  <img src="design/rc_car_top_view.png" width="200"/>
+  <img src="design/jerry_side_view.png" width="190"/>
+  <img src="design/jerry_side_rear_view.png" width=200/>
+  <img src="design/jerry_top_view.png" width="180"/>
 </div>
 
 ## 📡 Connecting via Wi-Fi
@@ -114,9 +115,9 @@ Future upgrades: better design, a real 18650 LiPo battery
 
 ## 🎖️ Credits & Acknowledgments
 ⭐ **Build, Code, & Suffering:** All done by me. From designing the circuit and wiring to coding the local HTTP web server on the ESP32, implementing the PWM motor logic, and spending hours debugging ghost voltages with DeepSeek :). </br>
-⭐ **The "Jerry" Inspiration:** Huge shoutout to my classmates ([lukspuks](https://github.com/lukspuks) & [sarakochovska](https://github.com/sarakochovska)) who helped brainstorm and came up with the idea for the name **Jerry**, as well as the upcoming mouse-like chassis design.
+⭐ **The "Jerry" Inspiration:** Huge shoutout to my classmates ([lukspuks](https://github.com/lukspuks) & [sarakochovska](https://github.com/sarakochovska)) who helped brainstorm and came up with the idea for the name **Jerry**, as well as the mouse-like chassis design.
 
-*Jerry will soon be left in the school projects cabin for future generations of makers to hopefully not destroy.*
+*Jerry now resides in the school projects cabin for future generations of makers to hopefully not destroy.*
 
 ---
 
