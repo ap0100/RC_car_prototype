@@ -15,12 +15,18 @@ The ESP32 creates its own Wi-Fi Access Point (AP).
 1. On your phone or laptop, open your Wi-Fi settings.
 2. Connect to the network: **`ESP32_RC_Car`**
 3. Password: **`rcCar1234`**
-4. *Note for mobile users:* Your phone will likely warn you that "This Wi-Fi network has no internet access." You **must** tap **"Keep Connection"** or **"Stay Connected"**, otherwise your phone will silently drop the connection.
+4. *Note for mobile users:* Your phone will likely warn you that "This Wi-Fi network has no internet access." You **must** tap **"Stay Connected"**, otherwise your phone will silently drop the connection and you won't be able to control the car.
 5. Open your web browser and go to: **`http://192.168.4.1`** 
-   *(you can try writing `http://esp32car.local` on some devices, it might work).*
+   *(you can try writing `http://esp32car.local` on some devices, it might work)*, the webpage looks like this:
+   
+   <img src="design/website_controller.jpg" width=200/><br/>
+   
+   * In the screenshot, the phone isn't connected to the car's Wi-Fi, that's why it says ,,Disconnected - join "ESP32_RC_Car"'' at the top. Once you connect, it will say ,,Connected'' and then you'll know that you can start driving
+<br/>
 
-❌ **Doesn't work:**
-*   You cannot use this with mobile data turned on if your phone aggressively switches back to 5G/4G. You must allow the "dumb" Wi-Fi connection to stay active, while you control the car.
+⚠️ **Important Note:**
+
+Because the ESP32 creates its own local Wi-Fi network, you will not have internet access while driving the car (which is only possible by connecting to the ESP32's Wi-Fi). You won't be able to browse the web and the controller page at `http://192.168.4.1` will be the only webpage that will work and that you'll be able to access.
 
 ---
 
@@ -35,7 +41,7 @@ The ESP32 creates its own Wi-Fi Access Point (AP).
 - 2x `220Ω Resistor` (for the LEDs)
   
 **Power/Charging**
-- `3.7V 1S Lithium-Polymer Battery` (Original: 802060-1000mAh, died. Replaced with: 103450-2000mAh fake cell "Zombie Cell")
+- `3.7V 1S Lithium-Polymer Battery` (Original: 802060-1000mAh, died?...is now "Zombie Backup" | Replaced with: 103450-2000mAh fake cell "Zombie Cell")
 - `TP4056 Lithium Charger Module` (with DW01HA + 8205A protection, USB Type-C)
 - `MT3608 DC-DC Boost Converter` (Step-Up, set to output 5V)
 - `LM2596 DC-DC Buck Converter` (Step-Down, set to output 3.3V)
@@ -63,14 +69,13 @@ Every `-` wire in the car goes to one common junction.
 4. Upload the `.ino` to the board
 
 **Controller:**
-*   Connect to the `ESP32_RC_Car` Wi-Fi network.
-*   Open `http://192.168.4.1` in any browser (Safari, Chrome, Edge).
+*   To access it, see the [📡 Connecting via Wi-Fi](#-connecting-via-wi-fi) section in the README
 
 ## 🎮 Driving
 1. Flip Switch 2 (car circuit) ON. Leave Switch 1 (charger) OFF.
-2. Connect to the `ESP32_RC_Car` Wi-Fi network.
-3. Go to `http://192.168.4.1`.
-4. GAS / REVERSE / LEFT (Forward and Backward) / RIGHT (Forward and Backward) / STOP / LIGHTS (Hold the buttons to drive, release to stop).
+2. Open the controller (see [📡 Connecting via Wi-Fi](#-connecting-via-wi-fi) section in README)
+3. GAS / REVERSE / LEFT (Forward and Backward) / RIGHT (Forward and Backward) / STOP / LIGHTS<br/>
+   <i>(Hold the buttons to drive, release to stop)</i>.
 
 **To charge:**
 1. Flip Switch 2 (car) OFF.
@@ -85,9 +90,9 @@ Every `-` wire in the car goes to one common junction.
 - **Battery → MT3608 (5V) → LM2596 (3.3V)** because the buck converter can't lower a voltage less than 5V, so we need to first increase the 3.7V to 5V, then reduce it to 3.3V.
 - **Don't charge while driving.** TP4056 has no load sharing.
 - **The Mobile "No Internet" Prompt:** When connecting to the ESP32's Wi-Fi, iOS and Android will try to switch back to mobile data because there's no internet. You *must* tell the OS to stay connected to the ESP32.
-- **Loose wires = Ghost Voltages.** Wrapping wires instead of soldering them creates high resistance that makes chargers and multimeters hallucinate (e.g., reading 4.2V when the battery is at 3.4V - this a specific scenario while charging the battery). So jsut solder everything!
+- **Loose wires = Ghost Voltages.** Wrapping wires instead of soldering them creates high resistance that makes chargers and multimeters hallucinate (e.g., reading 4.2V when the battery is at 3.4V - this is a specific scenario while charging the battery). So just solder everything!
 - **PWM Speed Limits Save Batteries.** Running the motors at 50% speed (PWM) drastically reduces the current spike, preventing the battery voltage from sagging below the ESP32's brownout limit, so the whole circuit works perfectly with quite low voltage (that's why the current "zombie cell" actually does the job).
-- **Motors without capacitors can work fine.** (add them only if Bluetooth drops out under load)
+- **Motors without capacitors can work fine.** 
 
 
 ## 🛠️ Quick Troubleshooting
@@ -101,9 +106,9 @@ Every `-` wire in the car goes to one common junction.
 
 ## 🪦 Casualties (in the order given)
 1. **1x GPIO 27** — Killed during a soldering operation with a bad batch of solder. Moved Motor B over to GPIO 33 instead.
-2. **1x 2000mAh LiPo (103450)** — Proved to be a completely fake cell. Charged 0.01V in 10 minutes, tripped its protection circuit constantly, and runs the ESP32 at 2.91V under load. Refuses to charge past 3.48V without the charger hallucinating 4.2V. Yet somehow perfectly fits the
-3. **1x TC1508A Motor Driver** — Died suddenly mid-project. Suddenly stopped responding on Motor A, onnly worked for Motor B. Suspect a voltage spike during the LiPo's final death throes. Replaced with an identical unit.
-4. **1x 2000mAh LiPo (103450) - THE ZOMBIE CELL** — Proved to be a completely fake cell (seriously discharged during testing and never recovered....would charge to 4.18-4.2V in less than 10 min and drop back to 3.29V the second you unplugged it). Refuses to charge (the TP4056 instantly flashes the blue "full" light even when the cell is at 3.35V-3.348V). However, it also refuses to die. Survived an exhausting **50+ minute (continuous) test run**: driving through school hallways and classrooms, and is still functioning at 3.35V. Will be dead once it drops below 3.2V (its internal protection circuit is tripped in a loop and continously cuts off the charge current, making recharging impossible).
+2.  **1x 1000mAh LiPo (802060) - ZOMBIE BACKUP?** — The original battery. Discharged drastically during testing, dropped to ~3.1V. However during the last day of production, it managed to get charged to 3.4V somehow...so it's kind of a backup cell now for when the zombie one finally dies....
+3. **1x TC1508A Motor Driver** — Died suddenly mid-project. Suddenly stopped responding on Motor A, only worked for Motor B. Suspect a voltage spike during the LiPo's final death throes. Replaced with an identical unit.
+4. **1x 2000mAh LiPo (103450) - THE ZOMBIE CELL** — Proved to be a completely fake cell (seriously discharged during testing and never recovered....would charge to 4.18-4.2V in less than 10 min and drop back to 3.29V the second you unplugged it). Refuses to charge (the TP4056 instantly flashes the blue "full" light even when the cell is at 3.35V-3.348V). However, it also refuses to die. Survived an exhausting **50+ minute (continuous) test run**: driving through school hallways and classrooms, and is still functioning at 3.35V. Will be dead once it drops below 3.2V (its internal protection circuit is tripped in a loop and continuously cuts off the charge current, making recharging impossible).
 
 ---
 
@@ -122,5 +127,5 @@ Future upgrades: better design, a real 18650 LiPo battery
 ---
 
 ## 💭 Final thoughts
-* **Time it took to complete:** 3 days, 6 hours
+* **Time it took to complete:** 3 days, 18 hours
 * **Conclusion:** Electronics isn't something to toy with. It was pure ragebait 60% of the time🥲.
