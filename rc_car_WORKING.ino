@@ -25,11 +25,9 @@ String currentDirection = "S";
 int currentSpeed = 0;
 unsigned long lastRampTime = 0;
 unsigned long lastMoveMs = 0;
-const unsigned long CMD_TIMEOUT = 800; // Watchdog: stop if connection drops
+const unsigned long CMD_TIMEOUT = 800; // watchdog (stop if connection drops)
 
-// ------------------------------------------------------------------
-// Web UI
-// ------------------------------------------------------------------
+// --- Web UI ---
 const char PAGE[] = R"rawliteral(
 <!DOCTYPE html><html><head>
 <meta charset="utf-8">
@@ -183,8 +181,7 @@ void applyMotorPWM(String dir, int speed) {
 
 void stopMotors() {
   targetDirection = "S";
-  // Note: we don't set speed to 0 instantly here. 
-  // The updateMotors() loop will smoothly ramp it down.
+  // don't set speed to 0 instantly, the updateMotors() loop will smoothly ramp it down
 }
 
 void toggleLights(){
